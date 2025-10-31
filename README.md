@@ -80,8 +80,9 @@ ls example/ios/build/generated/ios/RNCounterSpec/  # Verify codegen
 1. **Swift class**: `@objc(CounterView)` - exposes to Objective-C
 2. **Swift props**: `@objc var count: NSNumber` - React Native properties
 3. **Bridge pattern**: Use `NSClassFromString`, `setValue:forKey:`, `performSelector:` to avoid C++/Swift conflicts
-4. **Fabric guard**: `#ifdef RCT_NEW_ARCH_ENABLED` around Fabric files
-5. **CocoaPods**: `install_modules_dependencies(s)` in podspec
+4. **Event handling**: Connect native callbacks to Fabric's `EventEmitter` in ComponentView's `initWithFrame`
+5. **Fabric guard**: `#ifdef RCT_NEW_ARCH_ENABLED` around Fabric files
+6. **CocoaPods**: `install_modules_dependencies(s)` in podspec
 
 **Android:**
 1. **Manager interface**: Implement `CounterViewManagerInterface<T>` for Fabric
@@ -202,6 +203,38 @@ react-native-counter/
 ---
 
 ## 🚀 How to Create a Native Module with Fabric
+
+> **📖 Complete Implementation Guide**: This section provides **complete, copy-paste ready code** for all files. No external resources needed - just follow each step sequentially to build a working Fabric native module from scratch.
+
+### 📋 README Completeness Guarantee
+
+This guide is designed for developers to create a Fabric native module **without AI assistance or external documentation**. It includes:
+
+✅ **Complete File Contents** (not snippets):
+- All 150+ lines of Swift UI code (CounterView.swift)
+- Full Objective-C bridge with event handling (CounterViewBridge.h/m)
+- Complete C++ Fabric ComponentView with EventEmitter setup
+- Full Kotlin UI and ViewManager implementations
+- Complete example app code
+
+✅ **All Critical Details**:
+- Event callback setup for Fabric (often undocumented)
+- Circular update prevention with `shouldSendEvent` flag
+- Weak-strong dance for memory management
+- Complete Auto Layout constraints
+- Pragma directives to suppress warnings
+
+✅ **Step-by-Step Commands**:
+- Exact terminal commands with correct paths
+- CocoaPods and Gradle configurations
+- Debugging commands for verification
+
+✅ **Common Issues & Solutions**:
+- 11 documented issues with exact error messages
+- Root cause explanations
+- Complete code fixes (not just hints)
+
+**What's NOT abbreviated**: UI setup, event handling, memory management, bridging patterns, build configurations.
 
 ### Prerequisites Checklist
 
@@ -361,7 +394,7 @@ This tells React Native to generate:
 
 ### Step 3: Create the Swift UI Component
 
-Create `ios/CounterView.swift`:
+Create `ios/CounterView.swift` with the **complete implementation**:
 
 ```swift
 import Foundation
@@ -371,32 +404,132 @@ import React
 @objc(CounterView)  // ⚠️ Critical: Exposes class to Objective-C
 class CounterView: UIView {
     
-    // React Native props
+    // MARK: - Properties
+    private var counterValue: Int = 0 {
+        didSet {
+            updateUI()
+            if shouldSendEvent {
+                sendCountChangeEvent()
+            }
+        }
+    }
+    
+    // Prevents circular updates when count prop is set from JS
+    private var shouldSendEvent = true
+    
     @objc var count: NSNumber = 0 {
         didSet {
+            // Prevent circular updates: when prop is set from JS, don't send event
+            shouldSendEvent = false
             counterValue = count.intValue
+            shouldSendEvent = true
         }
     }
     
     @objc var onCountChange: RCTBubblingEventBlock?
     
-    // Internal state
-    private var counterValue: Int = 0 {
-        didSet {
-            updateUI()
-            sendCountChangeEvent()
-        }
-    }
-    
-    // UI components
+    // MARK: - UI Components
     private let counterLabel: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
         label.font = UIFont.systemFont(ofSize: 72, weight: .bold)
+        label.textColor = .label
+        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    // Methods
+    private let incrementButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Increment", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        button.backgroundColor = .systemBlue
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
+    private let decrementButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Decrement", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
+        button.backgroundColor = .systemRed
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
+    private let stackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 24
+        stack.alignment = .fill
+        stack.distribution = .fill
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    private let buttonStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 16
+        stack.alignment = .fill
+        stack.distribution = .fillEqually
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    // MARK: - Initialization
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+        setupActions()
+        updateUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Setup
+    private func setupUI() {
+        backgroundColor = .systemBackground
+        
+        // Add subviews
+        addSubview(stackView)
+        stackView.addArrangedSubview(counterLabel)
+        stackView.addArrangedSubview(buttonStackView)
+        
+        buttonStackView.addArrangedSubview(decrementButton)
+        buttonStackView.addArrangedSubview(incrementButton)
+        
+        // Layout constraints
+        NSLayoutConstraint.activate([
+            stackView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 32),
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -32),
+            
+            counterLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 100),
+            
+            buttonStackView.heightAnchor.constraint(equalToConstant: 56),
+        ])
+    }
+    
+    private func setupActions() {
+        incrementButton.addTarget(self, action: #selector(incrementTapped), for: .touchUpInside)
+        decrementButton.addTarget(self, action: #selector(decrementTapped), for: .touchUpInside)
+    }
+    
+    // MARK: - Actions
+    @objc private func incrementTapped() {
+        increment()
+    }
+    
+    @objc private func decrementTapped() {
+        decrement()
+    }
+    
     @objc func increment() {
         counterValue += 1
     }
@@ -405,8 +538,14 @@ class CounterView: UIView {
         counterValue -= 1
     }
     
+    // MARK: - Updates
+    private func updateUI() {
+        counterLabel.text = "\(counterValue)"
+    }
+    
     private func sendCountChangeEvent() {
-        onCountChange?(["count": counterValue])
+        guard let onCountChange = onCountChange else { return }
+        onCountChange(["count": counterValue])
     }
 }
 ```
@@ -415,6 +554,8 @@ class CounterView: UIView {
 - `@objc(CounterView)`: Makes Swift class visible to Objective-C runtime
 - `@objc` properties/methods: Exposed to React Native
 - `RCTBubblingEventBlock`: Event callback from native → JS
+- `shouldSendEvent` flag: Prevents circular updates when JS sets the count prop
+- Complete UI setup with Auto Layout constraints
 
 ### Step 4: Create Old Architecture Manager
 
@@ -466,7 +607,12 @@ class CounterViewManager: RCTViewManager {
 Create `ios/CounterViewBridge.h`:
 
 ```objective-c
+#import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+typedef void (^CountChangeCallback)(NSInteger count);
 
 @interface CounterViewBridge : NSObject
 
@@ -474,15 +620,19 @@ Create `ios/CounterViewBridge.h`:
 + (void)setCount:(NSNumber *)count forView:(UIView *)view;
 + (void)incrementView:(UIView *)view;
 + (void)decrementView:(UIView *)view;
++ (void)setCountChangeCallback:(CountChangeCallback)callback forView:(UIView *)view;
 
 @end
+
+NS_ASSUME_NONNULL_END
 ```
 
-Create `ios/CounterViewBridge.m`:
+Create `ios/CounterViewBridge.m` with **complete implementation**:
 
 ```objective-c
 #import "CounterViewBridge.h"
 #import <objc/runtime.h>
+#import <React/RCTViewManager.h>
 
 @implementation CounterViewBridge
 
@@ -508,7 +658,37 @@ Create `ios/CounterViewBridge.m`:
     // Use performSelector to call method dynamically
     SEL incrementSelector = NSSelectorFromString(@"increment");
     if ([view respondsToSelector:incrementSelector]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
         [view performSelector:incrementSelector];
+#pragma clang diagnostic pop
+    }
+}
+
++ (void)decrementView:(UIView *)view {
+    SEL decrementSelector = NSSelectorFromString(@"decrement");
+    if ([view respondsToSelector:decrementSelector]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+        [view performSelector:decrementSelector];
+#pragma clang diagnostic pop
+    }
+}
+
++ (void)setCountChangeCallback:(CountChangeCallback)callback forView:(UIView *)view {
+    // Create a wrapper block that bridges to RCTBubblingEventBlock
+    RCTBubblingEventBlock eventBlock = ^(NSDictionary *event) {
+        NSNumber *count = event[@"count"];
+        if (count && callback) {
+            callback([count integerValue]);
+        }
+    };
+    
+    // Set the onCountChange property using KVC
+    @try {
+        [view setValue:eventBlock forKey:@"onCountChange"];
+    } @catch (NSException *exception) {
+        NSLog(@"Failed to set onCountChange: %@", exception);
     }
 }
 
@@ -519,6 +699,8 @@ Create `ios/CounterViewBridge.m`:
 - **`NSClassFromString`**: Load Swift class dynamically (no header import needed)
 - **KVC (`setValue:forKey:`)**: Set properties by string name
 - **`performSelector`**: Call methods by string name
+- **Event callback bridge**: Wraps native callbacks for Fabric EventEmitter
+- **Pragma directives**: Suppress ARC warnings for performSelector
 - This avoids C++ compilation errors when mixing Swift + C++
 
 ### Step 6: Create the Fabric Component View
@@ -536,7 +718,7 @@ Create `ios/CounterViewComponentView.h`:
 #endif
 ```
 
-Create `ios/CounterViewComponentView.mm`:
+Create `ios/CounterViewComponentView.mm` with **complete implementation**:
 
 ```objective-c
 #ifdef RCT_NEW_ARCH_ENABLED
@@ -546,8 +728,11 @@ Create `ios/CounterViewComponentView.mm`:
 
 // Import generated Fabric headers
 #import <react/renderer/components/RNCounterSpec/ComponentDescriptors.h>
+#import <react/renderer/components/RNCounterSpec/EventEmitters.h>
 #import <react/renderer/components/RNCounterSpec/Props.h>
 #import <react/renderer/components/RNCounterSpec/RCTComponentViewHelpers.h>
+
+#import <React/RCTFabricComponentsPlugins.h>
 
 using namespace facebook::react;
 
@@ -569,6 +754,23 @@ using namespace facebook::react;
 
         // Create Swift view via bridge
         _view = [CounterViewBridge createCounterView];
+        
+        // ⚠️ CRITICAL: Connect native events to Fabric EventEmitter
+        __weak __typeof(self) weakSelf = self;
+        [CounterViewBridge setCountChangeCallback:^(NSInteger count) {
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
+            if (strongSelf && strongSelf->_eventEmitter) {
+                auto counterEventEmitter = std::static_pointer_cast<CounterViewEventEmitter const>(
+                    strongSelf->_eventEmitter
+                );
+                if (counterEventEmitter) {
+                    CounterViewEventEmitter::OnCountChange event;
+                    event.count = static_cast<int>(count);
+                    counterEventEmitter->onCountChange(event);
+                }
+            }
+        } forView:_view];
+        
         self.contentView = _view;
     }
     return self;
@@ -585,12 +787,20 @@ using namespace facebook::react;
     [super updateProps:props oldProps:oldProps];
 }
 
+- (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args {
+    RCTCounterViewHandleCommand(self, commandName, args);
+}
+
 - (void)increment {
     [CounterViewBridge incrementView:_view];
 }
 
 - (void)decrement {
     [CounterViewBridge decrementView:_view];
+}
+
+Class<RCTComponentViewProtocol> CounterViewCls(void) {
+    return CounterViewComponentView.class;
 }
 
 @end
@@ -600,8 +810,12 @@ using namespace facebook::react;
 **Key Points:**
 - Inherits from `RCTViewComponentView` (Fabric's base class)
 - `ComponentDescriptorProvider`: Registers component with Fabric
+- **Event callback setup in `initWithFrame`**: Bridges Swift events to Fabric's `EventEmitter`
+- **Weak-strong dance**: Prevents retain cycles with self reference in block
 - `updateProps`: Handles prop changes from JavaScript
-- Uses `CounterViewBridge` to interact with Swift view
+- `handleCommand`: Routes imperative commands (increment/decrement) 
+- `CounterViewCls` function: Required for Fabric registration
+- Uses `CounterViewBridge` to interact with Swift view without header imports
 
 ### Step 7: Register Component with Fabric
 
@@ -1038,7 +1252,7 @@ end
 
 **Important**: The `install_modules_dependencies(s)` function is provided by React Native and automatically adds the correct dependencies for Fabric support.
 
-### Step 9: Create Public API
+### Step 15: Create Public API
 
 Create `src/index.tsx`:
 
@@ -1047,7 +1261,7 @@ export { CounterView, useCounter } from './CounterView';
 export type { CounterViewProps } from './CounterView';
 ```
 
-### Step 10: Create React Component Wrapper
+### Step 16: Create React Component Wrapper
 
 Create `src/CounterView.tsx`:
 
@@ -1094,7 +1308,7 @@ export const useCounter = () => {
 };
 ```
 
-### Step 11: Create Example App for Testing
+### Step 17: Create Example App for Testing
 
 Your library is now complete! Let's create an example app to test it.
 
@@ -1241,7 +1455,7 @@ const styles = StyleSheet.create({
 export default App;
 ```
 
-### Step 12: Build and Run
+### Step 18: Build and Run
 
 #### Option 1: Using React Native CLI
 
@@ -1270,7 +1484,7 @@ In Xcode:
 
 **⚠️ Important**: Always open `.xcworkspace`, NOT `.xcodeproj` (CocoaPods requirement)
 
-### Step 13: Verify Codegen Output
+### Step 19: Verify Codegen Output
 
 After the first build, verify Codegen generated the necessary files:
 
@@ -1293,7 +1507,7 @@ cat build/generated/ios/RNCounterSpec/Props.h
 
 You'll see C++ structs matching your TypeScript interface!
 
-### Step 14: Test the Component
+### Step 20: Test the Component
 
 When the app launches, you should see:
 1. **Native UI** with large counter display
@@ -1630,9 +1844,103 @@ pod install
 
 ---
 
+### Issue 7: Event Handler Not Connected in Fabric (iOS)
+
+**Symptom**:
+```
+⚠️ CounterView: onCountChange handler is nil
+```
+
+Events from native UI aren't reaching JavaScript. The counter updates in the native UI but the `onCountChange` callback is never fired.
+
+**Cause**: In Fabric, event handlers aren't automatically bridged like in the old architecture. The native view's `onCountChange` property needs to be explicitly connected to Fabric's `EventEmitter`.
+
+**Solution**: Implement a callback bridge in `CounterViewBridge`:
+
+**1. Add callback typedef in `CounterViewBridge.h`:**
+```objective-c
+typedef void (^CountChangeCallback)(NSInteger count);
+
+@interface CounterViewBridge : NSObject
++ (void)setCountChangeCallback:(CountChangeCallback)callback forView:(UIView *)view;
+@end
+```
+
+**2. Implement the bridge in `CounterViewBridge.m`:**
+```objective-c
+#import <React/RCTViewManager.h>
+
++ (void)setCountChangeCallback:(CountChangeCallback)callback forView:(UIView *)view
+{
+    // Create a wrapper block that bridges to RCTBubblingEventBlock
+    RCTBubblingEventBlock eventBlock = ^(NSDictionary *event) {
+        NSNumber *count = event[@"count"];
+        if (count && callback) {
+            callback([count integerValue]);
+        }
+    };
+    
+    // Set the onCountChange property using KVC
+    @try {
+        [view setValue:eventBlock forKey:@"onCountChange"];
+    } @catch (NSException *exception) {
+        NSLog(@"Failed to set onCountChange: %@", exception);
+    }
+}
+```
+
+**3. Connect Fabric EventEmitter in `CounterViewComponentView.mm`:**
+```objective-c
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    if (self = [super initWithFrame:frame]) {
+        // ... existing setup ...
+        
+        _view = [CounterViewBridge createCounterView];
+        
+        // Connect native events to Fabric EventEmitter
+        __weak __typeof(self) weakSelf = self;
+        [CounterViewBridge setCountChangeCallback:^(NSInteger count) {
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
+            if (strongSelf && strongSelf->_eventEmitter) {
+                auto eventEmitter = std::static_pointer_cast<CounterViewEventEmitter const>(
+                    strongSelf->_eventEmitter
+                );
+                CounterViewEventEmitter::OnCountChange event;
+                event.count = static_cast<int>(count);
+                eventEmitter->onCountChange(event);
+            }
+        } forView:_view];
+        
+        self.contentView = _view;
+    }
+    return self;
+}
+```
+
+**Key Points**:
+- Old Architecture: Event handlers are automatically bridged via `RCTEventDispatcher`
+- New Architecture (Fabric): You must explicitly wire native callbacks to C++ `EventEmitter`
+- The bridge pattern keeps C++ code separate from Swift, preventing compilation conflicts
+- Use weak-strong dance to prevent retain cycles
+
+**Event Flow**:
+```
+Swift CounterView
+    ↓ calls onCountChange?(["count": value])
+Objective-C RCTBubblingEventBlock (set via bridge)
+    ↓ triggers CountChangeCallback
+C++ CounterViewEventEmitter
+    ↓ emits event via Fabric
+JavaScript onCountChange prop
+    ↓ updates React state
+```
+
+---
+
 ## 🤖 Android-Specific Issues
 
-### Issue 7: JVM Version Mismatch
+### Issue 8: JVM Version Mismatch
 
 **Error**:
 ```
@@ -1653,7 +1961,7 @@ kotlinOptions {
 }
 ```
 
-### Issue 8: Codegen Not Running
+### Issue 9: Codegen Not Running
 
 **Error**:
 ```
@@ -1673,7 +1981,7 @@ react {
 }
 ```
 
-### Issue 9: Missing Prefab Packages
+### Issue 10: Missing Prefab Packages
 
 **Error**:
 ```
@@ -1693,7 +2001,7 @@ dependencies {
 }
 ```
 
-### Issue 10: Autolinking C++ Errors
+### Issue 11: Autolinking C++ Errors
 
 **Error**:
 ```

@@ -32,6 +32,20 @@ using namespace facebook::react;
 
         _view = [CounterViewBridge createCounterView];
         
+        // Set up event callback from native view to Fabric EventEmitter
+        __weak __typeof(self) weakSelf = self;
+        [CounterViewBridge setCountChangeCallback:^(NSInteger count) {
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
+            if (strongSelf && strongSelf->_eventEmitter) {
+                auto counterEventEmitter = std::static_pointer_cast<CounterViewEventEmitter const>(strongSelf->_eventEmitter);
+                if (counterEventEmitter) {
+                    CounterViewEventEmitter::OnCountChange event;
+                    event.count = static_cast<int>(count);
+                    counterEventEmitter->onCountChange(event);
+                }
+            }
+        } forView:_view];
+        
         self.contentView = _view;
     }
 

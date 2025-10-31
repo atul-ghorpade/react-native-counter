@@ -9,13 +9,20 @@ class CounterView: UIView {
     private var counterValue: Int = 0 {
         didSet {
             updateUI()
-            sendCountChangeEvent()
+            if shouldSendEvent {
+                sendCountChangeEvent()
+            }
         }
     }
     
+    private var shouldSendEvent = true
+    
     @objc var count: NSNumber = 0 {
         didSet {
+            // Prevent circular updates: when prop is set from JS, don't send event
+            shouldSendEvent = false
             counterValue = count.intValue
+            shouldSendEvent = true
         }
     }
     

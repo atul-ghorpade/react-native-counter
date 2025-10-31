@@ -1,5 +1,6 @@
 #import "CounterViewBridge.h"
 #import <objc/runtime.h>
+#import <React/RCTViewManager.h>
 
 @implementation CounterViewBridge
 
@@ -44,6 +45,27 @@
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
         [view performSelector:decrementSelector];
 #pragma clang diagnostic pop
+    }
+}
+
++ (void)setCountChangeCallback:(CountChangeCallback)callback forView:(UIView *)view
+{
+    // Store the callback as an associated object
+    objc_setAssociatedObject(view, @"countChangeCallback", callback, OBJC_ASSOCIATION_COPY);
+    
+    // Create a wrapper block that bridges to RCTBubblingEventBlock
+    RCTBubblingEventBlock eventBlock = ^(NSDictionary *event) {
+        NSNumber *count = event[@"count"];
+        if (count && callback) {
+            callback([count integerValue]);
+        }
+    };
+    
+    // Set the onCountChange property
+    @try {
+        [view setValue:eventBlock forKey:@"onCountChange"];
+    } @catch (NSException *exception) {
+        NSLog(@"Failed to set onCountChange: %@", exception);
     }
 }
 
