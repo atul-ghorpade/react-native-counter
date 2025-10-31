@@ -1,6 +1,6 @@
 # React Native Counter with Fabric (New Architecture)
 
-A complete guide to building a React Native native module with Swift UI components and Fabric (New Architecture) support.
+A complete guide to building a React Native native module with Swift (UIKit) components and Fabric (New Architecture) support.
 
 ## 📚 Table of Contents
 
@@ -37,7 +37,7 @@ A complete guide to building a React Native native module with Swift UI componen
 
 | # | File | Purpose |
 |---|------|---------|
-| 6 | `ios/CounterView.swift` | Swift UI component with `@objc(CounterView)` |
+| 6 | `ios/CounterView.swift` | UIKit component (Swift) with `@objc(CounterView)` |
 | 7 | `ios/CounterViewManager.swift` | Old arch manager |
 | 8 | `ios/CounterViewManager.m` | RCT_EXTERN_MODULE declarations |
 | 9 | `ios/CounterViewBridge.h` | Objective-C bridge interface |
@@ -100,13 +100,13 @@ ls example/ios/build/generated/ios/RNCounterSpec/  # Verify codegen
 ## 🎯 Overview
 
 This project demonstrates how to build a React Native native module that:
-- ✅ Uses **Swift** for native iOS UI components
+- ✅ Uses **Swift with UIKit** for native iOS UI components
 - ✅ Supports React Native's **New Architecture (Fabric)**
 - ✅ Implements **bidirectional communication** (JS ↔️ Native)
 - ✅ Uses **Codegen** for type-safe interfaces
 - ✅ Supports **imperative commands** from JavaScript
 
-The example creates a beautiful native counter component with increment/decrement buttons, showcasing how to bridge modern Swift UI with React Native's Fabric renderer.
+The example creates a beautiful native counter component with increment/decrement buttons, showcasing how to bridge Swift UIKit views with React Native's Fabric renderer.
 
 ---
 
@@ -152,7 +152,7 @@ react-native-counter/
 │   └── NativeCounterView.ts               # Codegen spec (TypeScript)
 │
 ├── ios/                                    # Native iOS implementation
-│   ├── CounterView.swift                  # Swift UI component
+│   ├── CounterView.swift                  # UIKit component (Swift)
 │   ├── CounterViewManager.swift           # Old arch manager (RCTViewManager)
 │   ├── CounterViewManager.m               # Objective-C bridge
 │   │
@@ -185,7 +185,7 @@ react-native-counter/
 
 | File | Purpose | Language | Architecture |
 |------|---------|----------|--------------|
-| `CounterView.swift` | Native UI implementation | Swift | Both |
+| `CounterView.swift` | UIKit component implementation | Swift | Both |
 | `CounterViewManager.swift` | Old architecture manager | Swift | Old |
 | `CounterViewBridge.m` | Swift ↔️ Objective-C++ bridge | Objective-C | Both |
 | `CounterViewComponentView.mm` | Fabric component integration | Objective-C++ | Fabric |
@@ -211,7 +211,7 @@ react-native-counter/
 This guide is designed for developers to create a Fabric native module **without AI assistance or external documentation**. It includes:
 
 ✅ **Complete File Contents** (not snippets):
-- All 150+ lines of Swift UI code (CounterView.swift)
+- All 150+ lines of UIKit code in Swift (CounterView.swift)
 - Full Objective-C bridge with event handling (CounterViewBridge.h/m)
 - Complete C++ Fabric ComponentView with EventEmitter setup
 - Full Kotlin UI and ViewManager implementations
@@ -392,7 +392,7 @@ This tells React Native to generate:
 - **iOS**: C++ component descriptors in `build/generated/ios/`
 - **Android**: Java/C++ interfaces
 
-### Step 3: Create the Swift UI Component
+### Step 3: Create the UIKit Component in Swift
 
 Create `ios/CounterView.swift` with the **complete implementation**:
 
@@ -1590,7 +1590,7 @@ pod install --verbose
 │           ↓                                                  │
 │  CounterViewBridge.m (Objective-C Runtime)                  │
 │           ↓                                                  │
-│  CounterView.swift (Swift UI)                               │
+│  CounterView.swift (UIKit in Swift)                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -2156,7 +2156,7 @@ pod install
 ### What We Built
 
 ✅ A React Native native module with:
-- Swift UI component (`CounterView.swift`)
+- UIKit component in Swift (`CounterView.swift`)
 - Fabric support via C++ ComponentView
 - Objective-C bridge for Swift/C++ interop
 - Bidirectional communication (props, events, commands)
@@ -2346,7 +2346,7 @@ You now understand:
 ### What We Accomplished
 
 ✅ **Single TypeScript Codegen Spec** → Works on both platforms  
-✅ **iOS Fabric** → Swift UI + Objective-C Bridge + C++ ComponentView  
+✅ **iOS Fabric** → UIKit (Swift) + Objective-C Bridge + C++ ComponentView  
 ✅ **Android Fabric** → Kotlin UI + Manager Interface + Auto-generated C++  
 ✅ **Dual Architecture Support** → Old & New work simultaneously  
 ✅ **Type Safety** → Codegen ensures compile-time correctness  
