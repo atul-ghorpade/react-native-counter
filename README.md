@@ -1,5 +1,15 @@
 # React Native Counter with Fabric (New Architecture)
 
+<p align="center">
+  <img src="assets/demo.png" alt="React Native Counter Demo - iOS and Android" width="100%" />
+</p>
+
+<p align="center">
+  <em>Real-time event synchronization between JavaScript and native code on both iOS and Android</em>
+</p>
+
+---
+
 A complete guide to building a React Native native module with Swift (UIKit) components and Fabric (New Architecture) support.
 
 ## 📚 Table of Contents
