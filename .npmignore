@@ -1,0 +1,15 @@
+# Development
+example/
+.vscode/
+.idea/
+
+# Build
+*.log
+.DS_Store
+
+# Testing
+coverage/
+
+# Misc
+*.tgz
+

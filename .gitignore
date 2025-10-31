@@ -1,0 +1,117 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+*.log
+
+# Package manager locks (optional - uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock
+
+# Build outputs
+lib/
+dist/
+build/
+
+# React Native / Metro
+.metro-health-check*
+.cache/
+
+# iOS - Main module
+ios/build/
+ios/Pods/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+ios/*.xcworkspace
+!ios/*.xcworkspace/contents.xcworkspacedata
+!ios/*.xcworkspace/xcshareddata
+
+# iOS - Example app
+example/ios/build/
+example/ios/Pods/
+example/ios/*.xcworkspace
+!example/ios/*.xcworkspace/contents.xcworkspacedata
+!example/ios/*.xcworkspace/xcshareddata
+example/ios/DerivedData
+
+# CocoaPods
+Podfile.lock
+**/Pods/
+
+# Android - Main module
+android/.gradle/
+android/.cxx/
+android/build/
+android/local.properties
+android/captures/
+android/.externalNativeBuild/
+
+# Android - Example app
+example/android/.gradle/
+example/android/.cxx/
+example/android/build/
+example/android/app/build/
+example/android/local.properties
+example/android/captures/
+example/android/.externalNativeBuild/
+
+# Android IDE
+*.iml
+.idea/
+*.hprof
+
+# Gradle
+.gradle/
+**/build/
+
+# Codegen outputs (auto-generated, safe to ignore)
+android/build/generated/
+ios/build/generated/
+example/android/build/generated/
+example/ios/build/generated/
+
+# Example app dependencies
+example/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+*.coverage
+.nyc_output/
+junit.xml
+
+# Misc
+.DS_Store
+.vscode/
+.expo/
+.expo-shared/
+*.swp
+*.swo
+*~
+.watchmanconfig
+
+# Buck
+buck-out/
+.buckconfig.local
+.buckd/
+
+# Temporary files
+*.tmp
+*.temp
