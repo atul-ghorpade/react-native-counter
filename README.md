@@ -1,4 +1,4 @@
-# React Native Counter with Fabric (New Architecture)
+# React Native Counter Package with Fabric (New Architecture)
 
 <p align="center">
   <img src="assets/demo.png" alt="React Native Counter Demo - iOS and Android" width="100%" />
