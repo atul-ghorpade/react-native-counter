@@ -10,7 +10,7 @@
 
 ---
 
-A complete guide to building a React Native native module with Swift (UIKit) components and Fabric (New Architecture) support.
+A complete guide to building a React Native native module with Swift (UIKit) components for **Fabric (New Architecture) only**.
 
 ## 📚 Table of Contents
 
@@ -43,29 +43,27 @@ A complete guide to building a React Native native module with Swift (UIKit) com
 | 4 | `package.json` | With `codegenConfig` section |
 | 5 | `tsconfig.json` | TypeScript configuration |
 
-**iOS Only:**
+**iOS Only (Fabric):**
 
 | # | File | Purpose |
 |---|------|---------|
 | 6 | `ios/CounterView.swift` | UIKit component (Swift) with `@objc(CounterView)` |
-| 7 | `ios/CounterViewManager.swift` | Old arch manager |
-| 8 | `ios/CounterViewManager.m` | RCT_EXTERN_MODULE declarations |
-| 9 | `ios/CounterViewBridge.h` | Objective-C bridge interface |
-| 10 | `ios/CounterViewBridge.m` | Objective-C runtime bridge implementation |
-| 11 | `ios/CounterViewComponentView.h` | Fabric component header |
-| 12 | `ios/CounterViewComponentView.mm` | Fabric component implementation (C++) |
-| 13 | `ios/CounterViewFabric.h` | Component registration function |
-| 14 | `react-native-counter.podspec` | CocoaPods spec |
+| 7 | `ios/CounterViewBridge.h` | Objective-C bridge interface |
+| 8 | `ios/CounterViewBridge.m` | Objective-C runtime bridge implementation |
+| 9 | `ios/CounterViewComponentView.h` | Fabric component header |
+| 10 | `ios/CounterViewComponentView.mm` | Fabric component implementation (C++) |
+| 11 | `ios/CounterViewFabric.h` | Component registration function |
+| 12 | `react-native-counter.podspec` | CocoaPods spec |
 
-**Android Only:**
+**Android Only (Fabric):**
 
 | # | File | Purpose |
 |---|------|---------|
-| 15 | `android/build.gradle` | Gradle build configuration |
-| 16 | `android/src/main/AndroidManifest.xml` | Android manifest |
-| 17 | `android/src/main/java/com/.../CounterView.kt` | Kotlin UI component |
-| 18 | `android/src/main/java/com/.../CounterViewManager.kt` | Manager (both architectures) |
-| 19 | `android/src/main/java/com/.../CounterPackage.kt` | Package registration |
+| 13 | `android/build.gradle` | Gradle build configuration |
+| 14 | `android/src/main/AndroidManifest.xml` | Android manifest |
+| 15 | `android/src/main/java/com/.../CounterView.kt` | Kotlin UI component |
+| 16 | `android/src/main/java/com/.../CounterViewManager.kt` | Manager with Fabric delegate |
+| 17 | `android/src/main/java/com/.../CounterPackage.kt` | Package registration |
 
 ### Critical Commands
 
@@ -161,21 +159,19 @@ react-native-counter/
 │   ├── CounterView.tsx                    # React component wrapper
 │   └── NativeCounterView.ts               # Codegen spec (TypeScript)
 │
-├── ios/                                    # Native iOS implementation
+├── ios/                                    # Native iOS implementation (Fabric)
 │   ├── CounterView.swift                  # UIKit component (Swift)
-│   ├── CounterViewManager.swift           # Old arch manager (RCTViewManager)
-│   ├── CounterViewManager.m               # Objective-C bridge
 │   │
 │   ├── CounterViewBridge.h/.m             # Objective-C bridge for Swift
 │   ├── CounterViewComponentView.h/.mm     # Fabric component (C++)
 │   └── CounterViewFabric.h                # Fabric registration
 │
-├── android/                                # Native Android implementation
+├── android/                                # Native Android implementation (Fabric)
 │   ├── build.gradle                       # Gradle build config with React plugin
 │   ├── src/main/AndroidManifest.xml       # Android manifest
 │   └── src/main/java/com/reactnativecounter/
 │       ├── CounterView.kt                 # Kotlin UI component
-│       ├── CounterViewManager.kt          # Manager (both architectures)
+│       ├── CounterViewManager.kt          # Manager with Fabric delegate
 │       └── CounterPackage.kt              # Package registration
 │
 ├── react-native-counter.podspec           # CocoaPods specification
@@ -191,24 +187,23 @@ react-native-counter/
 | `NativeCounterView.ts` | Codegen spec - defines props, events, commands | TypeScript | Both |
 | `CounterView.tsx` | React wrapper component | TypeScript/React | Both |
 
-**iOS:**
+**iOS (Fabric Only):**
 
-| File | Purpose | Language | Architecture |
-|------|---------|----------|--------------|
-| `CounterView.swift` | UIKit component implementation | Swift | Both |
-| `CounterViewManager.swift` | Old architecture manager | Swift | Old |
-| `CounterViewBridge.m` | Swift ↔️ Objective-C++ bridge | Objective-C | Both |
-| `CounterViewComponentView.mm` | Fabric component integration | Objective-C++ | Fabric |
-| `CounterViewFabric.h` | Fabric component registration | Objective-C/C | Fabric |
+| File | Purpose | Language |
+|------|---------|----------|
+| `CounterView.swift` | UIKit component implementation | Swift |
+| `CounterViewBridge.m` | Swift ↔️ Objective-C++ bridge | Objective-C |
+| `CounterViewComponentView.mm` | Fabric component integration | Objective-C++ |
+| `CounterViewFabric.h` | Fabric component registration | Objective-C/C |
 
-**Android:**
+**Android (Fabric Only):**
 
-| File | Purpose | Language | Architecture |
-|------|---------|----------|--------------|
-| `CounterView.kt` | Native UI implementation | Kotlin | Both |
-| `CounterViewManager.kt` | Manager with Fabric delegate | Kotlin | Both |
-| `CounterPackage.kt` | Package registration | Kotlin | Both |
-| `build.gradle` | Build config + codegen setup | Gradle | Both |
+| File | Purpose | Language |
+|------|---------|----------|
+| `CounterView.kt` | Native UI implementation | Kotlin |
+| `CounterViewManager.kt` | Manager with Fabric delegate | Kotlin |
+| `CounterPackage.kt` | Package registration | Kotlin |
+| `build.gradle` | Build config + codegen setup | Gradle |
 
 ---
 
@@ -567,50 +562,7 @@ class CounterView: UIView {
 - `shouldSendEvent` flag: Prevents circular updates when JS sets the count prop
 - Complete UI setup with Auto Layout constraints
 
-### Step 4: Create Old Architecture Manager
-
-Create `ios/CounterViewManager.m`:
-
-```objective-c
-#import <React/RCTViewManager.h>
-
-@interface RCT_EXTERN_MODULE(CounterViewManager, RCTViewManager)
-
-RCT_EXPORT_VIEW_PROPERTY(count, NSNumber)
-RCT_EXPORT_VIEW_PROPERTY(onCountChange, RCTBubblingEventBlock)
-
-RCT_EXTERN_METHOD(increment:(nonnull NSNumber *)reactTag)
-RCT_EXTERN_METHOD(decrement:(nonnull NSNumber *)reactTag)
-
-@end
-```
-
-Create `ios/CounterViewManager.swift`:
-
-```swift
-@objc(CounterViewManager)
-class CounterViewManager: RCTViewManager {
-    
-    override func view() -> UIView! {
-        return CounterView()
-    }
-    
-    override static func requiresMainQueueSetup() -> Bool {
-        return true
-    }
-    
-    @objc func increment(_ reactTag: NSNumber) {
-        DispatchQueue.main.async {
-            self.bridge.uiManager.addUIBlock { (uiManager, viewRegistry) in
-                guard let view = viewRegistry?[reactTag] as? CounterView else { return }
-                view.increment()
-            }
-        }
-    }
-}
-```
-
-### Step 5: Create the Objective-C Bridge (Critical for Fabric + Swift)
+### Step 4: Create the Objective-C Bridge (Critical for Fabric + Swift)
 
 **Why?** Fabric's C++ component descriptors cannot directly import Swift headers. We need an Objective-C intermediary.
 
@@ -713,7 +665,7 @@ Create `ios/CounterViewBridge.m` with **complete implementation**:
 - **Pragma directives**: Suppress ARC warnings for performSelector
 - This avoids C++ compilation errors when mixing Swift + C++
 
-### Step 6: Create the Fabric Component View
+### Step 5: Create the Fabric Component View
 
 Create `ios/CounterViewComponentView.h`:
 
@@ -827,7 +779,7 @@ Class<RCTComponentViewProtocol> CounterViewCls(void) {
 - `CounterViewCls` function: Required for Fabric registration
 - Uses `CounterViewBridge` to interact with Swift view without header imports
 
-### Step 7: Register Component with Fabric
+### Step 6: Register Component with Fabric
 
 Create `ios/CounterViewFabric.h`:
 
@@ -870,7 +822,7 @@ npm run typescript  # Should have no errors
 
 Now let's implement the Android side with Fabric support. Good news: Android is simpler because codegen + autolinking handles C++ automatically!
 
-### Step 8: Create Android Project Structure
+### Step 7: Create Android Project Structure
 
 ```bash
 # From the root directory
@@ -879,7 +831,7 @@ touch android/src/main/AndroidManifest.xml
 touch android/build.gradle
 ```
 
-### Step 9: Configure Android build.gradle
+### Step 8: Configure Android build.gradle
 
 Create `android/build.gradle`:
 
@@ -990,7 +942,7 @@ dependencies {
 - `prefab true` enables prebuilt C++ libraries
 - NO manual CMake configuration needed!
 
-### Step 10: Create Android Manifest
+### Step 9: Create Android Manifest
 
 Create `android/src/main/AndroidManifest.xml`:
 
@@ -999,7 +951,7 @@ Create `android/src/main/AndroidManifest.xml`:
 </manifest>
 ```
 
-### Step 11: Create Kotlin UI Component
+### Step 10: Create Kotlin UI Component
 
 Create `android/src/main/java/com/reactnativecounter/CounterView.kt`:
 
@@ -1136,7 +1088,7 @@ class CounterView(context: Context) : LinearLayout(context) {
 - Direct event emission via `RCTEventEmitter`
 - Android View system (LinearLayout, Button, TextView)
 
-### Step 12: Create ViewManager with Fabric Support
+### Step 11: Create ViewManager with Fabric Support
 
 Create `android/src/main/java/com/reactnativecounter/CounterViewManager.kt`:
 
@@ -1205,7 +1157,7 @@ class CounterViewManager : SimpleViewManager<CounterView>(),
 2. When `newArchEnabled=true`: Delegate handles Fabric communication
 3. No C++ files needed - autolinking generates and compiles them!
 
-### Step 13: Create Package Registration
+### Step 12: Create Package Registration
 
 Create `android/src/main/java/com/reactnativecounter/CounterPackage.kt`:
 
@@ -1239,7 +1191,7 @@ ls -la android/src/main/java/com/reactnativecounter/
 
 ## 🎨 iOS CocoaPods Configuration
 
-### Step 14: Configure CocoaPods
+### Step 13: Configure CocoaPods
 
 Create `react-native-counter.podspec` in the root directory:
 
@@ -1262,7 +1214,7 @@ end
 
 **Important**: The `install_modules_dependencies(s)` function is provided by React Native and automatically adds the correct dependencies for Fabric support.
 
-### Step 15: Create Public API
+### Step 14: Create Public API
 
 Create `src/index.tsx`:
 
@@ -1271,7 +1223,7 @@ export { CounterView, useCounter } from './CounterView';
 export type { CounterViewProps } from './CounterView';
 ```
 
-### Step 16: Create React Component Wrapper
+### Step 15: Create React Component Wrapper
 
 Create `src/CounterView.tsx`:
 
@@ -1294,7 +1246,7 @@ export const CounterView: React.FC = ({ onCountChange, style }) => {
       ref={ref}
       style={style}
       count={count}
-      onCountChange={handleCountChange}
+        onCountChange={handleCountChange}
     />
   );
 };
@@ -1318,7 +1270,7 @@ export const useCounter = () => {
 };
 ```
 
-### Step 17: Create Example App for Testing
+### Step 16: Create Example App for Testing
 
 Your library is now complete! Let's create an example app to test it.
 
@@ -1415,14 +1367,14 @@ function App(): React.JSX.Element {
           setCount(newCount);
         }}
       />
-
+      
       <View style={styles.controls}>
         <Text style={styles.countText}>Current Count: {count}</Text>
         <View style={styles.buttons}>
           <Button title="Decrement (JS)" onPress={decrement} />
           <Button title="Increment (JS)" onPress={increment} />
-        </View>
       </View>
+    </View>
     </SafeAreaView>
   );
 }
@@ -1465,7 +1417,7 @@ const styles = StyleSheet.create({
 export default App;
 ```
 
-### Step 18: Build and Run
+### Step 17: Build and Run
 
 #### Option 1: Using React Native CLI
 
@@ -1494,7 +1446,7 @@ In Xcode:
 
 **⚠️ Important**: Always open `.xcworkspace`, NOT `.xcodeproj` (CocoaPods requirement)
 
-### Step 19: Verify Codegen Output
+### Step 18: Verify Codegen Output
 
 After the first build, verify Codegen generated the necessary files:
 
@@ -1517,7 +1469,7 @@ cat build/generated/ios/RNCounterSpec/Props.h
 
 You'll see C++ structs matching your TypeScript interface!
 
-### Step 20: Test the Component
+### Step 19: Test the Component
 
 When the app launches, you should see:
 1. **Native UI** with large counter display
@@ -1688,17 +1640,7 @@ UIView *view = [[counterViewClass alloc] init];
 [view performSelector:@selector(increment)];  // Dynamic invocation
 ```
 
-### Pattern 2: Dual Architecture Support
-
-**Goal**: Support both old and new architectures in the same codebase.
-
-**Implementation**:
-- Use `#ifdef RCT_NEW_ARCH_ENABLED` guards
-- Old arch: `CounterViewManager.swift` (RCTViewManager)
-- New arch: `CounterViewComponentView.mm` (RCTViewComponentView)
-- Shared: `CounterView.swift` (UI component)
-
-### Pattern 3: Codegen Type Safety
+### Pattern 2: Codegen Type Safety
 
 **Benefit**: TypeScript types automatically generate C++ interfaces.
 
@@ -2183,13 +2125,13 @@ Before considering your library complete, verify:
 - [ ] Public API exports are in `index.tsx`
 - [ ] `npm run typescript` passes without errors
 
-#### iOS Native Layer
+#### iOS Native Layer (Fabric)
 - [ ] Swift class has `@objc(YourViewName)` annotation
 - [ ] All React Native props/methods are marked `@objc`
 - [ ] Bridge files (`.h`, `.m`) use pure Objective-C (no Swift imports)
 - [ ] ComponentView (`.mm`) is guarded with `#ifdef RCT_NEW_ARCH_ENABLED`
 - [ ] Fabric registration function (`YourViewCls()`) is implemented
-- [ ] Old architecture manager (RCTViewManager) is implemented for backwards compatibility
+- [ ] Event callbacks connected to Fabric EventEmitter in `initWithFrame`
 
 #### Android Native Layer
 - [ ] ViewManager implements `CounterViewManagerInterface<T>`
@@ -2358,7 +2300,7 @@ You now understand:
 ✅ **Single TypeScript Codegen Spec** → Works on both platforms  
 ✅ **iOS Fabric** → UIKit (Swift) + Objective-C Bridge + C++ ComponentView  
 ✅ **Android Fabric** → Kotlin UI + Manager Interface + Auto-generated C++  
-✅ **Dual Architecture Support** → Old & New work simultaneously  
+✅ **Fabric-Only Implementation** → Simplified, modern architecture  
 ✅ **Type Safety** → Codegen ensures compile-time correctness  
 ✅ **Bidirectional Communication** → Props, Events, and Commands  
 
